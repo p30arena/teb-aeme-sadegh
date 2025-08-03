@@ -98,6 +98,9 @@ async function scrapeBook() {
           volume++;
           section = 1; // Reset section for the new volume
           console.log(`Moving to next volume: V${volume} S${section}`);
+      } else if (page === 1 && section === 1) {
+          console.log('Done Scraping.');
+          break; // End of book
       }
       await saveProgress(volume, section, page);
     } else {
@@ -105,11 +108,6 @@ async function scrapeBook() {
       await saveProgress(volume, section, page + 1); // Save progress for the *next* page
       page++;
     }
-
-    // Example break condition for testing. Remove in final version.
-    // if (volume > 1 || section > 2 || page > 5) {
-    //   continueScraping = false;
-    // }
   }
 }
 
