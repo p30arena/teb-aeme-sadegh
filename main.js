@@ -94,9 +94,10 @@ async function scrapeBook() {
       section++;
       // Heuristic: If section 1 and page 1 is not found, assume end of volume and try next volume.
       // This needs careful testing with the actual API.
-      if (section === 1) { // This condition needs to be adjusted based on the API's actual "end of section" behavior
+      // If page 1 of the current section is not found, it means the volume has ended.
+      if (page === 1) {
           volume++;
-          section = 1;
+          section = 1; // Reset section for the new volume
           console.log(`Moving to next volume: V${volume} S${section}`);
       }
       await saveProgress(volume, section, page);
