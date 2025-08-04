@@ -1,12 +1,12 @@
-require('dotenv').config();
-const { Client } = require('@elastic/elasticsearch');
+require("dotenv").config();
+const { Client } = require("@elastic/elasticsearch");
 
-const hadiths = require('./hadiths_translated.json');
+const hadiths = require("./hadiths_translated.json");
 
 const irabRegex = /[\u0617-\u061A\u064B-\u065F\u0670]/g;
 
 function removeIrab(text) {
-  if (typeof text !== 'string') {
+  if (typeof text !== "string") {
     return text; // Handle non-string inputs gracefully
   }
 
@@ -25,7 +25,7 @@ function removeIrab(text) {
   // - Hamza below (ٕ)
   // - Dagger Alif (ٰ)
 
-  return text.replace(irabRegex, '');
+  return text.replace(irabRegex, "");
 }
 
 const client = new Client({
@@ -35,15 +35,15 @@ const client = new Client({
     password: process.env.ELASTICSEARCH_PASSWORD,
   },
   tls: {
-    rejectUnauthorized: false
-  }
+    rejectUnauthorized: false,
+  },
 });
 
 async function main() {
   const indexName = process.env.ELASTICSEARCH_INDEX_NAME;
 
   console.log(`Checking if index "${indexName}" exists...`);
-  const { body: indexExists } = await client.indices.exists({ index: indexName });
+  const indexExists = await client.indices.exists({ index: indexName });
 
   if (!indexExists) {
     console.log(`Index "${indexName}" does not exist.`);
@@ -52,31 +52,41 @@ async function main() {
     console.log(`Index "${indexName}" already exists.`);
   }
 
-  const body = hadiths.flatMap(doc => {
-    const { id, title, title_fa, content, content_fa, sanad, ghael, vol, page } = doc;
+  const body = hadiths.flatMap((doc) => {
+    const {
+      id,
+      title,
+      title_fa,
+      content,
+      content_fa,
+      sanad,
+      ghael,
+      vol,
+      page,
+    } = doc;
     const transformedDoc = {
       id: `teb_aeme_sadegh_${id}`,
       book: {
         title: "طب الائمة الصادقين",
         page_no: page,
-        vol_no: vol
+        vol_no: vol,
       },
       title: title_fa,
       topic: title,
       text_arabic_irab: content,
       text_arabic: removeIrab(content),
       text_farsi: content_fa,
-      sayers_list: [ghael],
+      sayers_list: ghael ? [ghael] : sanad ? [sanad] : [],
       keywords: [],
       categories: [],
     };
-    return [{ index: { _index: indexName, _id: transformedDoc.id } }, transformedDoc];
+    return [
+      { index: { _index: indexName, _id: transformedDoc.id } },
+      transformedDoc,
+    ];
   });
 
-  console.log(body);
-  process.exit(0)
-
-  console.log('Batch inserting documents...');
+  console.log("Batch inserting documents...");
   const { body: bulkResponse } = await client.bulk({ refresh: true, body });
 
   if (bulkResponse.errors) {
@@ -88,11 +98,11 @@ async function main() {
           status: action[operation].status,
           error: action[operation].error,
           operation: body[i * 2],
-          document: body[i * 2 + 1]
+          document: body[i * 2 + 1],
         });
       }
     });
-    console.log('Errored documents:', erroredDocuments);
+    console.log("Errored documents:", erroredDocuments);
   }
 
   const { body: count } = await client.count({ index: indexName });
