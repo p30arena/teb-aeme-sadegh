@@ -48,7 +48,7 @@ async function translateText(text, isTitle = false) {
     } catch (error) {
       if (error.status === 429) {
         retries++;
-        const delay = Math.pow(2, retries) * 1000;
+        const delay = Math.pow(2, 3 + retries) * 1000;
         console.log(`Rate limit hit. Retrying in ${delay / 1000}s...`);
         await new Promise((res) => setTimeout(res, delay));
       } else {
