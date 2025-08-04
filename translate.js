@@ -1,4 +1,4 @@
-const { GoogleGenAI } = require("@google/genai");
+const { GoogleGenAI, Type } = require("@google/genai");
 const fs = require("fs/promises");
 const dotenv = require("dotenv");
 
@@ -13,11 +13,11 @@ async function translateText(text, isTitle = false) {
   }
 
   const prefix = "Translate the following Arabic text to Farsi:";
-  const title_sufix = "The word 'باب' stands for 'موضوع'.";
-  const prompt = `${prefix} ${isTitle ? title_sufix : ""}
----
-${text}
-`;
+  const title_sufix = `
+  ### Translation Helpers
+   - The word 'باب' stands for 'موضوع'.
+  `;
+  const prompt = `${prefix} ${isTitle ? title_sufix : ""}\n---\n${text}`;
 
   let retries = 0;
   const maxRetries = 5;
@@ -27,8 +27,20 @@ ${text}
       const response = await ai.models.generateContent({
         model: "gemini-2.0-flash-lite",
         contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              translation: {
+                type: Type.STRING,
+              },
+            },
+            required: ["translation"],
+          },
+        },
       });
-      const translated = response.text;
+      const translated = JSON.parse(response.text).translation;
       if (isTitle) {
         titleCache[text] = translated;
       }
