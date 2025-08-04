@@ -40,7 +40,7 @@ const client = new Client({
 });
 
 async function main() {
-  const indexName = process.env.INDEX_NAME;
+  const indexName = process.env.ELASTICSEARCH_INDEX_NAME;
 
   console.log(`Checking if index "${indexName}" exists...`);
   const { body: indexExists } = await client.indices.exists({ index: indexName });
