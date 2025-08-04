@@ -52,57 +52,61 @@ async function main() {
     console.log(`Index "${indexName}" already exists.`);
   }
 
-  const body = hadiths.flatMap((doc) => {
-    const {
-      id,
-      title,
-      title_fa,
-      content,
-      content_fa,
-      sanad,
-      ghael,
-      vol,
-      page,
-    } = doc;
-    const transformedDoc = {
-      id: `teb_aeme_sadegh_${id}`,
-      book: {
-        title: "طب الائمة الصادقين",
-        page_no: page,
-        vol_no: vol,
-      },
-      title: title_fa,
-      topic: title,
-      text_arabic_irab: content,
-      text_arabic: removeIrab(content),
-      text_farsi: content_fa,
-      sayers_list: ghael ? [ghael] : sanad ? [sanad] : [],
-      keywords: [],
-      categories: [],
-    };
-    return [
-      { index: { _index: indexName, _id: transformedDoc.id } },
-      transformedDoc,
-    ];
-  });
-
-  console.log("Batch inserting documents...");
-  const { body: bulkResponse } = await client.bulk({ refresh: true, body });
-
-  if (bulkResponse.errors) {
-    const erroredDocuments = [];
-    bulkResponse.items.forEach((action, i) => {
-      const operation = Object.keys(action)[0];
-      if (action[operation].error) {
-        erroredDocuments.push({
-          status: action[operation].status,
-          error: action[operation].error,
-          operation: body[i * 2],
-          document: body[i * 2 + 1],
-        });
-      }
+  const chunkSize = 100;
+  for (let i = 0; i < hadiths.length; i += chunkSize) {
+    const chunk = hadiths.slice(i, i + chunkSize);
+    const body = chunk.flatMap((doc) => {
+      const {
+        id,
+        title,
+        title_fa,
+        content,
+        content_fa,
+        sanad,
+        ghael,
+        vol,
+        page,
+      } = doc;
+      const transformedDoc = {
+        id: `teb_aeme_sadegh_${id}`,
+        book: {
+          title: "طب الائمة الصادقين",
+          page_no: page,
+          vol_no: vol,
+        },
+        title: title_fa,
+        topic: title,
+        text_arabic_irab: content,
+        text_arabic: removeIrab(content),
+        text_farsi: content_fa,
+        sayers_list: ghael ? [ghael] : sanad ? [sanad] : [],
+        keywords: [],
+        categories: [],
+      };
+      return [
+        { index: { _index: indexName, _id: transformedDoc.id } },
+        transformedDoc,
+      ];
     });
-    console.log("Errored documents:", erroredDocuments);
+
+    console.log(`Batch inserting documents ${i + 1} to ${i + chunk.length}...`);
+    const { body: bulkResponse } = await client.bulk({ refresh: true, body });
+
+    if (bulkResponse.errors) {
+      const erroredDocuments = [];
+      bulkResponse.items.forEach((action, i) => {
+        const operation = Object.keys(action)[0];
+        if (action[operation].error) {
+          erroredDocuments.push({
+            status: action[operation].status,
+            error: action[operation].error,
+            operation: body[i * 2],
+            document: body[i * 2 + 1],
+          });
+        }
+      });
+      console.log("Errored documents:", erroredDocuments);
+    }
   }
 
   const { body: count } = await client.count({ index: indexName });
