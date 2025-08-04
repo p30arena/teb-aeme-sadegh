@@ -77,20 +77,28 @@ async function main() {
         currentTitle = heading;
       }
 
-      const hadithElement = $('format.hadith');
-      if (hadithElement.length > 0) {
-        let revayatIndex = hadithElement.attr('revayatindex');
-        const hadithContent = hadithElement.text().trim();
+      $('format.hadith').each((index, hadithElement) => {
+        const $hadith = $(hadithElement);
+        let revayatIndex = $hadith.attr('revayatindex');
 
         if (!revayatIndex) {
-          // If revayatindex is missing or empty, create a unique ID
-          const paragraphId = hadithElement.closest('p').attr('id');
+          const paragraphId = $hadith.closest('p').attr('id');
           revayatIndex = `gen_${filePath}_${paragraphId}`;
         }
 
         const existingHadith = allHadiths.find(
           h => h.id === revayatIndex && h.title === currentTitle
         );
+        
+        const sanadElement = $hadith.find('format.sanadHadith');
+        const ghaelElement = sanadElement.find('format.maasoom');
+        const ghael = ghaelElement.text().trim();
+        const sanad = sanadElement.text().trim();
+
+        const contentClone = $hadith.clone();
+        contentClone.find('format.sanadHadith').remove();
+        contentClone.find('lfootnote').remove(); // Remove footnote markers for cleaner text
+        const hadithContent = contentClone.text().trim();
 
         if (existingHadith) {
           existingHadith.content += `\n${hadithContent}`;
@@ -101,10 +109,12 @@ async function main() {
             page: page,
             id: revayatIndex,
             title: currentTitle,
+            ghael: ghael,
+            sanad: sanad,
             content: hadithContent,
           });
         }
-      }
+      });
     }
   }
 
