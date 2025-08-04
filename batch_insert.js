@@ -68,7 +68,6 @@ async function main() {
         page,
       } = doc;
       const transformedDoc = {
-        id: `teb_aeme_sadegh_${id}`,
         book: {
           title: "طب الائمة الصادقين",
           page_no: page,
@@ -84,13 +83,13 @@ async function main() {
         categories: [],
       };
       return [
-        { index: { _index: indexName, _id: transformedDoc.id } },
+        { index: { _index: indexName, _id: `teb_aeme_sadegh_${id}` } },
         transformedDoc,
       ];
     });
 
     console.log(`Batch inserting documents ${i + 1} to ${i + chunk.length}...`);
-    const { body: bulkResponse } = await client.bulk({ refresh: true, body });
+    const bulkResponse = await client.bulk({ refresh: true, body });
 
     if (bulkResponse.errors) {
       const erroredDocuments = [];
@@ -109,8 +108,8 @@ async function main() {
     }
   }
 
-  const { body: count } = await client.count({ index: indexName });
-  console.log(`There are ${count.count} documents in the index.`);
+  const countResponse = await client.count({ index: indexName });
+  console.log(`There are ${countResponse.count} documents in the index.`);
 }
 
 main().catch(console.error);
